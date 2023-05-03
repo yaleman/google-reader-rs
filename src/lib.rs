@@ -20,6 +20,7 @@ pub struct GoogleReader {
     /// The server URL, e.g. `https://example.com/api/greader.php` for FreshRSS
     server_url: Url,
     authtoken: Option<String>,
+    write_token: Option<String>,
     client: Option<Client>,
 }
 
@@ -86,6 +87,7 @@ impl GoogleReader {
             password: password.to_string(),
             server_url,
             authtoken: None,
+            write_token: None,
             client: None,
         })
     }
@@ -157,10 +159,17 @@ impl GoogleReader {
             .await
             .with_context(|| "Failed to get write token")?;
 
-        let body = res
+        let mut body = res
             .text()
             .await
             .with_context(|| "Failed to get write token response body")?;
+
+        if body.ends_with('\n') {
+            body = body.strip_suffix('\n').unwrap().to_string();
+        }
+
+        self.write_token = Some(body.to_owned());
+
         Ok(body)
     }
 
@@ -200,7 +209,6 @@ impl GoogleReader {
                 format!("c={}&{}", continuation, url.query().unwrap_or("")).as_str(),
             ))
         };
-        #[cfg(debug_assertions)]
         trace!("url: {}", url);
         let res = self
             .client
@@ -239,6 +247,53 @@ impl GoogleReader {
         #[cfg(debug_assertions)]
         trace!("Auth headers: {:?}", headers);
         headers
+    }
+
+    /// Mark an item as read
+    pub async fn mark_item_read(&mut self, item_id: impl ToString) -> anyhow::Result<String> {
+        if self.authtoken.is_none() {
+            self.login().await.with_context(|| "Failed to login")?;
+        }
+
+        let write_token = match &self.write_token {
+            Some(val) => val.to_owned(),
+            None => self
+                .get_write_token()
+                .await
+                .with_context(|| "Failed to get write token")?,
+        };
+
+        let params = [
+            ("a", "user/-/state/com.google/read"),
+            ("T", &write_token),
+            ("i", &item_id.to_string()),
+        ];
+
+        let mut url = self.server_url.clone();
+        url.path_segments_mut()
+            .unwrap()
+            .push("reader")
+            .push("api")
+            .push("0")
+            .push("edit-tag");
+        trace!("edit-tag url: {}", url);
+        let res = self
+            .client
+            .as_ref()
+            .unwrap()
+            .post(url)
+            .form(&params)
+            .headers(self.get_auth_headers())
+            .send()
+            .await
+            .with_context(|| "Failed to get write token")?;
+
+        let body = res
+            .text()
+            .await
+            .with_context(|| "Failed to get write token response body")?;
+
+        Ok(body)
     }
 
     /// Returns the number of unread items, does'nt work for FreshRSS.
