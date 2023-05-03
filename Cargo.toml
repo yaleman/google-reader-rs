@@ -7,7 +7,7 @@ authors = [
 ]
 repository = "https://github.com/yaleman/google-reader-rs"
 homepage = "https://github.com/yaleman/google-reader-rs"
-license = "MPL 2.0"
+license = "MPL-2.0"
 description = "A Rust library for interacting with Google Reader"
 keywords = [
     "reader",
