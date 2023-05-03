@@ -11,6 +11,5 @@ jobs:
         with:
           submodules: true
           depth: 1
-      - uses: icepuma/rust-action@master
-        with:
-          args: cargo test
+      - name: Run cargo test
+        run: cargo test

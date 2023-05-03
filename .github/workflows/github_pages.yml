@@ -25,9 +25,6 @@ jobs:
         with:
           fetch-depth: 0
           clean: false
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
       - name: Make all the books
         run: make doc
       - name: Upload artifact
