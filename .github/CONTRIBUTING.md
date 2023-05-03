@@ -1,4 +1,4 @@
-# How to contribute to ocsf-rs
+# How to contribute to google-reader-rs
 
 ## Join the community
 
@@ -6,8 +6,8 @@
 
 ## Send your suggestions using one of these methods:
 
-- as a [pull request](https://github.com/yaleman/ocsf-rs/pulls)
+- as a [pull request](https://github.com/yaleman/google-reader-rs/pulls)
 
-- as [an issue](https://github.com/yaleman/ocsf-rs/issues/new)
+- as [an issue](https://github.com/yaleman/google-reader-rs/issues/new)
 
 Thanks!
