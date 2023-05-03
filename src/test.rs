@@ -8,12 +8,25 @@ use log::*;
 
 static LOG_LEVEL: &str = "DEBUG";
 
-#[tokio::test]
-async fn test_unread_count() {
-    if let Err(_) = flexi_logger::Logger::try_with_str(LOG_LEVEL)
+macro_rules!  setup_testing{
+    () => {
+        if let Err(_) = flexi_logger::Logger::try_with_str(LOG_LEVEL)
         .unwrap()
         .start()
     {};
+
+    if env::var("CI").is_ok() {
+        info!("Skipping test because we're in CI");
+        return;
+    }
+
+    };
+}
+
+#[tokio::test]
+async fn test_unread_count() {
+    setup_testing!();
+
     let username =
         env::var("GOOGLE_READER_USERNAME").expect("Missing env var: GOOGLE_READER_USERNAME");
     let password =
@@ -34,10 +47,8 @@ async fn test_unread_count() {
 
 #[tokio::test]
 async fn test_get_write_token() {
-    if let Err(_) = flexi_logger::Logger::try_with_str(LOG_LEVEL)
-        .unwrap()
-        .start()
-    {};
+    setup_testing!();
+
     let username =
         env::var("GOOGLE_READER_USERNAME").expect("Missing env var: GOOGLE_READER_USERNAME");
     let password =
@@ -64,10 +75,8 @@ async fn test_get_write_token() {
 }
 #[tokio::test]
 async fn test_get_unread_items() {
-    if let Err(_) = flexi_logger::Logger::try_with_str(LOG_LEVEL)
-        .unwrap()
-        .start()
-    {};
+    setup_testing!();
+
     let username =
         env::var("GOOGLE_READER_USERNAME").expect("Missing env var: GOOGLE_READER_USERNAME");
     let password =
@@ -97,10 +106,7 @@ async fn test_get_unread_items() {
 
 #[tokio::test]
 async fn test_mark_item_read() {
-    if let Err(_) = flexi_logger::Logger::try_with_str(LOG_LEVEL)
-        .unwrap()
-        .start()
-    {};
+    setup_testing!();
     let username =
         env::var("GOOGLE_READER_USERNAME").expect("Missing env var: GOOGLE_READER_USERNAME");
     let password =
