@@ -24,20 +24,20 @@ pub struct GoogleReader {
     client: Option<Client>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, PartialEq, Eq, Clone)]
 /// A link to a resource
 pub struct Link {
     pub href: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, PartialEq, Eq, Clone)]
 /// Item Summary
 pub struct Summary {
     pub content: Option<String>,
     pub author: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, PartialEq, Eq, Clone)]
 /// Feed Item
 pub struct Item {
     pub id: String,
