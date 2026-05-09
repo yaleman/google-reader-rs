@@ -8,18 +8,17 @@ use log::*;
 
 static LOG_LEVEL: &str = "DEBUG";
 
-macro_rules!  setup_testing{
+macro_rules! setup_testing {
     () => {
         if let Err(_) = flexi_logger::Logger::try_with_str(LOG_LEVEL)
-        .unwrap()
-        .start()
-    {};
+            .expect("Failed to create logger")
+            .start()
+        {};
 
-    if env::var("CI").is_ok() {
-        info!("Skipping test because we're in CI");
-        return;
-    }
-
+        if env::var("CI").is_ok() {
+            info!("Skipping test because we're in CI");
+            return;
+        }
     };
 }
 
@@ -33,7 +32,7 @@ async fn test_unread_count() {
         env::var("GOOGLE_READER_PASSWORD").expect("Missing env var: GOOGLE_READER_PASSWORD");
     let server = env::var("GOOGLE_READER_SERVER").expect("Missing env var: GOOGLE_READER_SERVER");
 
-    let mut reader = super::GoogleReader::try_new(username, password, &server)
+    let mut reader = super::GoogleReader::try_new(&username, &password, &server)
         .expect("Failed to create API object");
 
     let res = reader.unread_count().await;
@@ -55,23 +54,16 @@ async fn test_get_write_token() {
         env::var("GOOGLE_READER_PASSWORD").expect("Missing env var: GOOGLE_READER_PASSWORD");
     let server = env::var("GOOGLE_READER_SERVER").expect("Missing env var: GOOGLE_READER_SERVER");
 
-    let mut reader = super::GoogleReader::try_new(username, password, server)
+    let mut reader = super::GoogleReader::try_new(&username, &password, &server)
         .expect("Failed to create API object");
 
     let write_token = reader
         .get_write_token()
         .await
         .with_context(|| "Failed to get write_token")
-        .unwrap();
+        .expect("Failed to get write_token");
 
     info!("Write token: {:?}", write_token);
-
-    // let unread_ids = reader.get_unread_items().await.with_context(|| "Failed to query unread ids").unwrap();
-
-    // for item in unread_ids {
-    //     let unread = reader.get_item(item).await;
-    //     info!("Unread ID: {:?}", unread);
-    // }
 }
 #[tokio::test]
 async fn test_get_unread_items() {
@@ -83,14 +75,14 @@ async fn test_get_unread_items() {
         env::var("GOOGLE_READER_PASSWORD").expect("Missing env var: GOOGLE_READER_PASSWORD");
     let server = env::var("GOOGLE_READER_SERVER").expect("Missing env var: GOOGLE_READER_SERVER");
 
-    let mut reader = super::GoogleReader::try_new(username, password, server)
+    let mut reader = super::GoogleReader::try_new(&username, &password, &server)
         .expect("Failed to create API object");
 
     let unread_response = reader
         .get_unread_items(None)
         .await
         .with_context(|| "Failed to query unread ids")
-        .unwrap();
+        .expect("Failed to query unread ids");
 
     unread_response.items.iter().for_each(|item| {
         info!("Unread: {:?}", item);
@@ -113,10 +105,13 @@ async fn test_mark_item_read() {
         env::var("GOOGLE_READER_PASSWORD").expect("Missing env var: GOOGLE_READER_PASSWORD");
     let server = env::var("GOOGLE_READER_SERVER").expect("Missing env var: GOOGLE_READER_SERVER");
 
-    let mut reader = super::GoogleReader::try_new(username, password, server)
+    let mut reader = super::GoogleReader::try_new(&username, &password, &server)
         .expect("Failed to create API object");
 
-    let unread = reader.get_unread_items(None).await.unwrap();
+    let unread = reader
+        .get_unread_items(None)
+        .await
+        .expect("Failed to query unread items");
 
     if unread.items.is_empty() {
         error!("Can't test this because you don't have any unread items!");
@@ -130,7 +125,7 @@ async fn test_mark_item_read() {
                 .mark_item_read(&item.id)
                 .await
                 .with_context(|| "Failed to mark item read")
-                .unwrap();
+                .expect("Failed to mark item read");
             info!("Response from mark read: {:?}", response)
         }
     }

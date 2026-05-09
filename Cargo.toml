@@ -1,6 +1,6 @@
 [package]
 name = "google-reader"
-version = "0.0.2"
+version = "0.0.3"
 edition = "2021"
 authors = ["James Hodgkinson <james@terminaloutcomes.com>"]
 repository = "https://github.com/yaleman/google-reader-rs"
@@ -8,8 +8,6 @@ homepage = "https://github.com/yaleman/google-reader-rs"
 license = "MPL-2.0"
 description = "A Rust library for interacting with Google Reader"
 keywords = ["reader", "api", "rss", "freshrss"]
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 anyhow = "1.0.102"

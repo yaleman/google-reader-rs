@@ -1,3 +1,24 @@
+#![deny(warnings)]
+#![deny(deprecated)]
+#![recursion_limit = "512"]
+#![warn(unused_extern_crates)]
+// Enable some groups of clippy lints.
+#![deny(clippy::suspicious)]
+#![deny(clippy::perf)]
+// Specific lints to enforce.
+#![deny(clippy::todo)]
+#![deny(clippy::unimplemented)]
+#![deny(clippy::unwrap_used)]
+#![deny(clippy::expect_used)]
+#![deny(clippy::panic)]
+#![deny(clippy::await_holding_lock)]
+#![deny(clippy::needless_pass_by_value)]
+#![deny(clippy::trivially_copy_pass_by_ref)]
+#![deny(clippy::disallowed_types)]
+#![deny(clippy::manual_let_else)]
+#![deny(clippy::indexing_slicing)]
+#![allow(clippy::unreachable)]
+
 use std::collections::HashMap;
 
 use anyhow::Context;
@@ -68,15 +89,15 @@ pub struct Response {
 impl GoogleReader {
     /// The server URL is something like `https://example.com/api/greader.php` for FreshRSS
     pub fn try_new(
-        username: impl ToString,
-        password: impl ToString,
-        server_url: impl ToString,
+        username: &impl ToString,
+        password: &impl ToString,
+        server_url: &impl ToString,
     ) -> anyhow::Result<Self> {
         let server_url = match server_url.to_string().ends_with('/') {
             true => server_url
                 .to_string()
                 .strip_suffix('/')
-                .unwrap()
+                .context("Failed to strip trailing slash from server URL")?
                 .to_string(),
             false => server_url.to_string(),
         };
@@ -96,7 +117,7 @@ impl GoogleReader {
     pub async fn login(&mut self) -> anyhow::Result<()> {
         let mut url = self.server_url.clone();
         url.path_segments_mut()
-            .unwrap()
+            .map_err(|_| anyhow::anyhow!("Failed to get path segments from server URL"))?
             .push("accounts")
             .push("ClientLogin");
 
@@ -109,7 +130,7 @@ impl GoogleReader {
         let res = self
             .client
             .as_ref()
-            .unwrap()
+            .context("HTTP client not initialized")?
             .post(url)
             .form(&params)
             .send()
@@ -143,7 +164,7 @@ impl GoogleReader {
         }
         let mut url = self.server_url.clone();
         url.path_segments_mut()
-            .unwrap()
+            .map_err(|_| anyhow::anyhow!("Failed to get path segments from server URL"))?
             .push("reader")
             .push("api")
             .push("0")
@@ -152,9 +173,9 @@ impl GoogleReader {
         let res = self
             .client
             .as_ref()
-            .unwrap()
+            .context("HTTP client not initialized")?
             .get(url)
-            .headers(self.get_auth_headers())
+            .headers(self.get_auth_headers()?)
             .send()
             .await
             .with_context(|| "Failed to get write token")?;
@@ -165,7 +186,10 @@ impl GoogleReader {
             .with_context(|| "Failed to get write token response body")?;
 
         if body.ends_with('\n') {
-            body = body.strip_suffix('\n').unwrap().to_string();
+            body = body
+                .strip_suffix('\n')
+                .context("Failed to strip trailing newline from write token")?
+                .to_string();
         }
 
         self.write_token = Some(body.to_owned());
@@ -186,7 +210,7 @@ impl GoogleReader {
 
         let mut url = self.server_url.clone();
         url.path_segments_mut()
-            .unwrap()
+            .map_err(|_| anyhow::anyhow!("Failed to get path segments from server URL"))?
             .push("reader")
             .push("api")
             .push("0")
@@ -213,9 +237,9 @@ impl GoogleReader {
         let res = self
             .client
             .as_ref()
-            .unwrap()
+            .context("HTTP client not initialized")?
             .get(url)
-            .headers(self.get_auth_headers())
+            .headers(self.get_auth_headers()?)
             .send()
             .await
             .with_context(|| "Failed to send unread-items request")?;
@@ -236,17 +260,22 @@ impl GoogleReader {
     pub async fn get_item(&self, _item_id: usize) {}
 
     /// Returns the auth headers for use with the API.
-    fn get_auth_headers(&self) -> HeaderMap {
+    fn get_auth_headers(&self) -> anyhow::Result<HeaderMap> {
         let mut headers = HeaderMap::new();
         headers.append(
             "Authorization",
-            format!("GoogleLogin auth={}", self.authtoken.clone().unwrap())
-                .parse()
-                .unwrap(),
+            format!(
+                "GoogleLogin auth={}",
+                self.authtoken
+                    .clone()
+                    .context("Auth token not initialized")?
+            )
+            .parse()
+            .map_err(|err| anyhow::anyhow!("Failed to parse authorization header: {}", err))?,
         );
         #[cfg(debug_assertions)]
         trace!("Auth headers: {:?}", headers);
-        headers
+        Ok(headers)
     }
 
     /// Mark an item as read
@@ -271,7 +300,7 @@ impl GoogleReader {
 
         let mut url = self.server_url.clone();
         url.path_segments_mut()
-            .unwrap()
+            .map_err(|_| anyhow::anyhow!("Failed to get path segments from server URL"))?
             .push("reader")
             .push("api")
             .push("0")
@@ -280,10 +309,10 @@ impl GoogleReader {
         let res = self
             .client
             .as_ref()
-            .unwrap()
+            .context("HTTP client not initialized")?
             .post(url)
             .form(&params)
-            .headers(self.get_auth_headers())
+            .headers(self.get_auth_headers()?)
             .send()
             .await
             .with_context(|| "Failed to get write token")?;
@@ -304,7 +333,7 @@ impl GoogleReader {
 
         let mut url = self.server_url.clone();
         url.path_segments_mut()
-            .unwrap()
+            .map_err(|_| anyhow::anyhow!("Failed to get path segments from server URL"))?
             .push("reader")
             .push("api")
             .push("0")
@@ -314,9 +343,9 @@ impl GoogleReader {
         let res = self
             .client
             .as_ref()
-            .unwrap()
+            .context("HTTP client not initialized")?
             .get(url)
-            .headers(self.get_auth_headers())
+            .headers(self.get_auth_headers()?)
             .send()
             .await
             .with_context(|| "Failed to send unread-items request")?;
